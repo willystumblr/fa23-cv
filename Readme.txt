@@ -58,3 +58,26 @@ Example:
         'bbox': {'x_min': 371, 'y_min': 180, 'x_max': 523, 'y_max': 609}
         }
 }
+
+------------------------------------------
+2. Train your model 
+
++ TODO: Add Training code that loads .json file and images 
++ TODO: Since we don't have valid test dataset, We have to split training dataset. 
+
+------------------------------------------
+3. Predict from test dataset
+
++ TODO: Add Predicting code that writes .json file of the result.
+
+------------------------------------------
+4. Get scores 
+
+- Finally, Put your predicted data in .json file, with the same layout above, 
+so that we can run it on test_leaderboard
+
+Use test_leaderboard.py to get the score of your data. 
+
+$python test_leaderboard.py (predected.json)
+
++ TODO: Add Visualization for some predicted result 

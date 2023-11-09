@@ -8,124 +8,18 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # cross_validation =
 # 0: train/test split, 1: 0-15999 of train sample as val, ..., 5: 64000-79999 of train sample as val
-def data_loader(data_path, task=1, type='train', cross_validation=0):
+def data_loader(data_path='./data/h3wb/annotations', type='train', cross_validation=0):
     id_list = []
     input_list = []
     target_list = []
     bbox_list = []
     if type == 'train':
-        if (task == 1) or (task == 2) or ('2D' in str(task)):
-            data = json.load(open(data_path+'/2Dto3D_train.json'))
-            length = len(data)
-            for i in range(length):
-                if (cross_validation == 0) or (((length//5) * (cross_validation-1)<=i) and ((length//5) * (cross_validation)>i)):
-                    sample_2d = torch.zeros(1, 133, 2)
-                    sample_3d = torch.zeros(1, 133, 3)
-                    for j in range(133):
-                        sample_2d[0, j, 0] = data[str(i)]['keypoints_2d'][str(j)]['x']
-                        sample_2d[0, j, 1] = data[str(i)]['keypoints_2d'][str(j)]['y']
-                        sample_3d[0, j, 0] = data[str(i)]['keypoints_3d'][str(j)]['x']
-                        sample_3d[0, j, 1] = data[str(i)]['keypoints_3d'][str(j)]['y']
-                        sample_3d[0, j, 2] = data[str(i)]['keypoints_3d'][str(j)]['z']
-                    id_list.append(i)
-                    input_list.append(sample_2d)
-                    target_list.append(sample_3d)
-            return id_list, input_list, target_list
-        elif (task == 3) or ('RGB' in str(task)):
-            data = json.load(open(data_path+'/RGBto3D_train.json'))
-            length = len(data)
-            for i in range(length):
-                if (cross_validation == 0) or (((length // 5) * (cross_validation - 1) <= i) and ((length // 5) * (cross_validation) > i)):
-                    sample_3d = torch.zeros(1, 133, 3)
-                    bbox = torch.zeros(1,4)
-                    bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
-                    bbox[0, 1] = int(data[str(i)]['bbox']['y_min'])
-                    bbox[0, 2] = int(data[str(i)]['bbox']['x_max'])
-                    bbox[0, 3] = int(data[str(i)]['bbox']['y_max'])
-                    bbox_list.append(bbox)
-                    for j in range(133):
-                        sample_3d[0, j, 0] = data[str(i)]['keypoints_3d'][str(j)]['x']
-                        sample_3d[0, j, 1] = data[str(i)]['keypoints_3d'][str(j)]['y']
-                        sample_3d[0, j, 2] = data[str(i)]['keypoints_3d'][str(j)]['z']
-                    id_list.append(i)
-                    input_list.append(data[str(i)]['image_path'])
-                    target_list.append(sample_3d)
-            return id_list, input_list, target_list, bbox_list
-    elif type == 'test':
-        if (task == 1) or (('2D' in str(task)) and ('I2D' not in str(task))):
-            data = json.load(open(data_path+'/2Dto3D_test_2d.json'))
-            length = len(data)
-            for i in range(length):
-                sample_2d = torch.zeros(1, 133, 2)
-                for j in range(133):
-                    sample_2d[0, j, 0] = data[str((i//4)*8+(i%4))]['keypoints_2d'][str(j)]['x']
-                    sample_2d[0, j, 1] = data[str((i//4)*8+(i%4))]['keypoints_2d'][str(j)]['y']
-                id_list.append((i//4)*8+(i%4))
-                input_list.append(sample_2d)
-            return id_list, input_list
-        elif (task == 2) or ('I2D' in str(task)):
-            data = json.load(open(data_path+'/I2Dto3D_test_2d.json'))
-            length = len(data)
-            for i in range(length):
-                sample_2d = torch.zeros(1, 133, 2)
-                for j in range(133):
-                    sample_2d[0, j, 0] = data[str((i//4)*8+(i%4)+4)]['keypoints_2d'][str(j)]['x']
-                    sample_2d[0, j, 1] = data[str((i//4)*8+(i%4)+4)]['keypoints_2d'][str(j)]['y']
-                id_list.append((i//4)*8+(i%4)+4)
-                input_list.append(sample_2d)
-            return id_list, input_list
-        elif (task == 3) or ('RGB' in str(task)):
-            data = json.load(open(data_path+'/RGBto3D_test_img.json'))
-            length = len(data)
-            for i in range(length):
-                id_list.append(i)
-                input_list.append(data[str(i)]['image_path'])
-                bbox = torch.zeros(1, 4)
-                bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
-                bbox[0, 1] = int(data[str(i)]['bbox']['y_min'])
-                bbox[0, 2] = int(data[str(i)]['bbox']['x_max'])
-                bbox[0, 3] = int(data[str(i)]['bbox']['y_max'])
-                bbox_list.append(bbox)
-            return id_list, input_list, bbox_list
-    elif type == 'admin':
-        if (task == 1) or (('2D' in str(task)) and ('I2D' not in str(task))):
-            data = json.load(open(data_path+'/2Dto3D_test_3d.json'))
-            length = len(data)
-            for i in range(length):
-                sample_2d = torch.zeros(1, 133, 2)
+        data = json.load(open(data_path+'/RGBto3D_train.json'))
+        length = len(data)
+        for i in range(length):
+            if (cross_validation == 0) or (((length // 5) * (cross_validation - 1) <= i) and ((length // 5) * (cross_validation) > i)):
                 sample_3d = torch.zeros(1, 133, 3)
-                for j in range(133):
-                    sample_2d[0, j, 0] = data[str((i//4)*8+(i%4))]['keypoints_2d'][str(j)]['x']
-                    sample_2d[0, j, 1] = data[str((i//4)*8+(i%4))]['keypoints_2d'][str(j)]['y']
-                    sample_3d[0, j, 0] = data[str((i//4)*8+(i%4))]['keypoints_3d'][str(j)]['x']
-                    sample_3d[0, j, 1] = data[str((i//4)*8+(i%4))]['keypoints_3d'][str(j)]['y']
-                    sample_3d[0, j, 2] = data[str((i//4)*8+(i%4))]['keypoints_3d'][str(j)]['z']
-                id_list.append((i//4)*8+(i%4))
-                input_list.append(sample_2d)
-                target_list.append(sample_3d)
-            return id_list, input_list, target_list
-        elif (task == 2) or ('I2D' in str(task)):
-            data = json.load(open(data_path+'/I2Dto3D_test_3d.json'))
-            length = len(data)
-            for i in range(length):
-                sample_2d = torch.zeros(1, 133, 2)
-                sample_3d = torch.zeros(1, 133, 3)
-                for j in range(133):
-                    sample_2d[0, j, 0] = data[str((i//4)*8+(i%4)+4)]['keypoints_2d'][str(j)]['x']
-                    sample_2d[0, j, 1] = data[str((i//4)*8+(i%4)+4)]['keypoints_2d'][str(j)]['y']
-                    sample_3d[0, j, 0] = data[str((i//4)*8+(i%4)+4)]['keypoints_3d'][str(j)]['x']
-                    sample_3d[0, j, 1] = data[str((i//4)*8+(i%4)+4)]['keypoints_3d'][str(j)]['y']
-                    sample_3d[0, j, 2] = data[str((i//4)*8+(i%4)+4)]['keypoints_3d'][str(j)]['z']
-                id_list.append((i//4)*8+(i%4)+4)
-                input_list.append(sample_2d)
-                target_list.append(sample_3d)
-            return id_list, input_list, target_list
-        elif (task == 3) or ('RGB' in str(task)):
-            data = json.load(open(data_path+'/RGBto3D_test_3d.json'))
-            length = len(data)
-            for i in range(length):
-                sample_3d = torch.zeros(1, 133, 3)
-                bbox = torch.zeros(1, 4)
+                bbox = torch.zeros(1,4)
                 bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
                 bbox[0, 1] = int(data[str(i)]['bbox']['y_min'])
                 bbox[0, 2] = int(data[str(i)]['bbox']['x_max'])
@@ -138,20 +32,42 @@ def data_loader(data_path, task=1, type='train', cross_validation=0):
                 id_list.append(i)
                 input_list.append(data[str(i)]['image_path'])
                 target_list.append(sample_3d)
-            return id_list, input_list, target_list, bbox_list
+        return id_list, input_list, target_list, bbox_list
+    elif type == 'test':
+        data = json.load(open(data_path+'/RGBto3D_test_img.json'))
+        length = len(data)
+        for i in range(length):
+            id_list.append(i)
+            input_list.append(data[str(i)]['image_path'])
+            bbox = torch.zeros(1, 4)
+            bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
+            bbox[0, 1] = int(data[str(i)]['bbox']['y_min'])
+            bbox[0, 2] = int(data[str(i)]['bbox']['x_max'])
+            bbox[0, 3] = int(data[str(i)]['bbox']['y_max'])
+            bbox_list.append(bbox)
+            return id_list, input_list, bbox_list
+    elif type == 'admin':
+        data = json.load(open(data_path+'/RGBto3D_test_3d.json'))
+        length = len(data)
+        for i in range(length):
+            sample_3d = torch.zeros(1, 133, 3)
+            bbox = torch.zeros(1, 4)
+            bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
+            bbox[0, 1] = int(data[str(i)]['bbox']['y_min'])
+            bbox[0, 2] = int(data[str(i)]['bbox']['x_max'])
+            bbox[0, 3] = int(data[str(i)]['bbox']['y_max'])
+            bbox_list.append(bbox)
+            for j in range(133):
+                sample_3d[0, j, 0] = data[str(i)]['keypoints_3d'][str(j)]['x']
+                sample_3d[0, j, 1] = data[str(i)]['keypoints_3d'][str(j)]['y']
+                sample_3d[0, j, 2] = data[str(i)]['keypoints_3d'][str(j)]['z']
+            id_list.append(i)
+            input_list.append(data[str(i)]['image_path'])
+            target_list.append(sample_3d)
+        return id_list, input_list, target_list, bbox_list
 
 def test_score(data_path):
     print(data_path)
-    task = 1
-    for i in range(3):
-        if 'task' + str(i + 1) in data_path:
-            task = i + 1
-    if 'RGB' in data_path:
-        task = 3
-    elif 'I2D' in data_path:
-        task = 2
-    elif '2D' in data_path:
-        task = 1
 
     cross_validation = 0
     for i in range(6):
@@ -159,17 +75,11 @@ def test_score(data_path):
             cross_validation = i
 
     predict_data = json.load(open(data_path))
-    gt_data_path = './datasets/json/'
+    gt_data_path = './data/h3wb/annotations'
     if cross_validation == 0:
-        if task <3:
-            id_list, _, target_list = data_loader(gt_data_path, task=task, type='admin')
-        else:
-            id_list, _, target_list, _ = data_loader(gt_data_path, task=task, type='admin')
+        id_list, _, target_list, _ = data_loader(gt_data_path, type='admin')
     else:
-        if task <3:
-            id_list, _, target_list = data_loader(gt_data_path, task=task, type='train', cross_validation=cross_validation)
-        else:
-            id_list, _, target_list, _ = data_loader(gt_data_path, task=task, type='train', cross_validation=cross_validation)
+        id_list, _, target_list, _ = data_loader(gt_data_path, type='train', cross_validation=cross_validation)
 
     predict_list = []
     for i in range(len(id_list)):
