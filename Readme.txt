@@ -1,8 +1,15 @@
 Resnet 3d wholebody, with classical cv 
 ---------------------
-0. Get Dataset:
+0. Set-up:
+(1) Dataset
 - Run data.sh in a preferred directory (takes several GB and takes 30~45 min. Beware!!!)
 - Put RGBto3D_train.json and  RGBto3D_test_img.json to /data/h3wb/annotations 
+(2) Environment
+```
+conda create -n [env name] python=3.9
+
+pip install -r requirements.txt
+```
 
 1. About Dataset:
 - It follows the COCO dataset format: https://github.com/jin-s13/COCO-WholeBody
