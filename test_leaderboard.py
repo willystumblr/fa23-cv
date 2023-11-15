@@ -3,6 +3,8 @@ import os
 import sys
 import torch
 import json
+from PIL import Image
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -18,6 +20,12 @@ def data_loader(data_path='./data/h3wb/annotations', type='train', cross_validat
         length = len(data)
         for i in range(length):
             if (cross_validation == 0) or (((length // 5) * (cross_validation - 1) <= i) and ((length // 5) * (cross_validation) > i)):
+                ### converting to np array ###
+                img = convert_to_array(data[str(i)]['image_path'])
+                ### TODO: use img array when training!
+                ### Things to note: since it is RGB image, it should be converted to (..., ..., 3). 
+                ### Edit the code if necessary
+                
                 sample_3d = torch.zeros(1, 133, 3)
                 bbox = torch.zeros(1,4)
                 bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
@@ -64,7 +72,7 @@ def data_loader(data_path='./data/h3wb/annotations', type='train', cross_validat
             id_list.append(i)
             input_list.append(data[str(i)]['image_path'])
             target_list.append(sample_3d)
-        return id_list, input_list, target_list, bbox_list
+        return id_list, input_list, target_list, bbox_list, img
 
 def test_score(data_path):
     print(data_path)
@@ -121,6 +129,9 @@ def test_score(data_path):
     print("Pelvis aligned MPJPE on hands is " + str(count[3]) + ' mm')
     print("Wrist aligned MPJPE on hands is " + str(count[5]/2) + ' mm')
 
+def convert_to_array(target_path: str, image_path: str='./data/h3wb/images'):
+    img = Image.open(os.path.join(image_path, target_path))
+    return np.array(img)
 
 if __name__ == "__main__":
     args = sys.argv[1:]
