@@ -4,7 +4,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-DATA_PATH = "./datasets/json/"
+DATA_PATH = "../data/h3wb/annotations"
 
 # load json
 # task1+2_train.json is quite big. In case of memory out, load it by parts. See json_loader_part()

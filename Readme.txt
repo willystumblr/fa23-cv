@@ -7,7 +7,7 @@ Resnet 3d wholebody, with classical cv
 (2) Environment
 ```
 conda create -n [env name] python=3.9
-
+conda activate [env name]
 pip install -r requirements.txt
 ```
 
