@@ -4,8 +4,23 @@ import os
 import torch
 import torch.nn as nn
 import torchvision.models as models
-from utils import json_loader_100
+from torchvision import transforms
+from torch.utils.data import DataLoader, Dataset
+import torch.optim as optim
+
+from utils import json_loader
 from PIL import Image
+
+class CustomDataset(Dataset):
+    def __init__(self, images, keypoints):
+        self.images = images
+        self.keypoints = keypoints
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index):
+        return self.images[index], self.keypoints[index]
 
 class model_resnet50(nn.Module):
     def __init__(self, num_keypoint=133, pretrained=False):
@@ -38,37 +53,96 @@ class model_resnet50(nn.Module):
         return x1 #, x2
     
     
-    imgpath = "data/h3wb/images/"
-    imgresizepath = "data/h3wb/reimages/"
-    
-    
-    input_list, target_list, bbox_list = json_loader_100("data/h3wb/annotations",3,'train')
-    num_data = len(input_list)
-    img_list = []
-    
-    for i in range(len(input_list)):
-        image_dir = '../data/h3wb/images'
-        sample_img = Image.open(os.path.join(imgresizepath, input_list))
-        torch_img = torch.array(sample_img)
-        img_list.append(torch_img)
-    
-    img_list = np.array(img_list)
-    
-    
-       
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+imgpath = "data/h3wb/images/"
+imgresizepath = "data/h3wb/reimages/"
 
-    net = model_resnet50(pretrained=False).to(device)
-    
-    if os.path.exists('./net.pth'):
-        net.load_state_dict(torch.load('./net.pth', map_location=device))
-        print('load pretrained weight')
 
-    batch_size = 10
-    a = torch.rand(batch_size, 3, 224, 224).to(device)
-    b = net(a)
+input_list, target_list, _ = json_loader("data/h3wb/annotations",3,'train')
+
+input_list = input_list[:len(input_list)//2]
+target_list = target_list[:len(target_list)//2]
+
+num_data = len(input_list)
+img_list = []
+
+# Making an actual torch.tensor out of images
+transform = transforms.Compose([transforms.ToTensor()])
+i = 0
+for input in input_list:
+    if(i % 200 == 0):
+        print(i,'/',len(input_list))
+    image_dir = '../data/h3wb/images'
+    sample_img = Image.open(os.path.join(imgresizepath, input))
+    torch_img = transform(sample_img)
+    img_list.append(torch_img)
+    i+=1
     
+img_list = torch.stack(img_list) # [100, 3, 244, 244]
+
+# Making an actual torch.tensor out of target_list
+target_list = torch.stack(target_list)
+prefix_size = target_list.size()[:-2]
+target_list = target_list.view(*prefix_size,399).squeeze(dim=1) # [100, 399]
+
+###########################################################
+
+# 1. Creating DataLoader
+
+batch_size = 10
+dataset = CustomDataset(img_list, target_list)
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+# 2. Define the model 
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+net = model_resnet50(pretrained=False).to(device)
+
+if os.path.exists('./net.pth'):
+    net.load_state_dict(torch.load('./net.pth', map_location=device))
+    print('load pretrained weight')
+
+# 3. Define Loss function 
+
+loss_fn = nn.MSELoss()
+
+# 4. Define Optimizer 
+
+optimizer = optim.Adam(net.parameters(), lr=0.005)
+
+# 5. Training loop
+
+num_epochs = 10  # Adjust as needed
+print_interval = 100  # Adjust as needed
+
+for epoch in range(num_epochs):
+    net.train()
+    running_loss = 0.0
+
+    for i, (images, keypoints) in enumerate(dataloader, 1):
+        images, keypoints = images.to(device), keypoints.to(device)
+
+        # Forward pass
+        outputs = net(images)
+
+        # Compute loss
+        loss = loss_fn(outputs, keypoints)
+
+        # Backward pass and optimization
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item()
+
+        # Print statistics
+        if i % print_interval == 0:
+            average_loss = running_loss / print_interval
+            print(f"Epoch [{epoch + 1}/{num_epochs}], Batch [{i}/{len(dataloader)}], Loss: {average_loss}")
+            running_loss = 0.0
+
     
-    print(b.shape)
+
+# 7. Save the model
+torch.save(net.state_dict(), "trained_model.pth")
 
 
