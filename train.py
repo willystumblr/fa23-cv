@@ -4,7 +4,8 @@ import os
 import torch
 import torch.nn as nn
 import torchvision.models as models
-from utils import json_loader
+from utils import json_loader_100
+from PIL import Image
 
 class model_resnet50(nn.Module):
     def __init__(self, num_keypoint=133, pretrained=False):
@@ -35,28 +36,39 @@ class model_resnet50(nn.Module):
         # x2 = self.relu(self.fc4(x2))
         # x2 = (self.outlayer2(x2))
         return x1 #, x2
-
-
-
-
-if __name__ == "__main__":
     
-    input_list, target_list, bbox_list = json_loader("data/h3wb/annotations",3,'train')
     
-    print[input_list[0]]
-    print[target_list[0]]
-    print[bbox_list[0]]
+    imgpath = "data/h3wb/images/"
+    imgresizepath = "data/h3wb/reimages/"
     
+    
+    input_list, target_list, bbox_list = json_loader_100("data/h3wb/annotations",3,'train')
+    num_data = len(input_list)
+    img_list = []
+    
+    for i in range(len(input_list)):
+        image_dir = '../data/h3wb/images'
+        sample_img = Image.open(os.path.join(imgresizepath, input_list))
+        torch_img = torch.array(sample_img)
+        img_list.append(torch_img)
+    
+    img_list = np.array(img_list)
+    
+    
+       
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     net = model_resnet50(pretrained=False).to(device)
+    
     if os.path.exists('./net.pth'):
         net.load_state_dict(torch.load('./net.pth', map_location=device))
         print('load pretrained weight')
 
-    batch_size = 2
+    batch_size = 10
     a = torch.rand(batch_size, 3, 224, 224).to(device)
     b = net(a)
+    
+    
     print(b.shape)
 
 

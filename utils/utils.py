@@ -86,29 +86,83 @@ def json_loader(data_path, task=1, type='train'):
                 bbox_list.append(bbox)
             return id_list, input_list, bbox_list
 
-# load task1+2_train.json by parts in case the whole file is too big
-def json_loader_part(data_path, cv=0):
+
+
+def json_loader_100(data_path, task=1, type='train'):
+    id_list = []
     input_list = []
     target_list = []
-    if cv == 0:
-        load_part_id = [1,2,3,4,5]  # load all 5 files
-    else:
-        load_part_id = [cv]
-    for part in load_part_id:
-        data = json.load(open(data_path+'/2Dto3D_train_part'+str(part)+'.json'))
-        length = len(data)
-        for i in range(length):
-            sample_2d = torch.zeros(1, 133, 2)
-            sample_3d = torch.zeros(1, 133, 3)
-            for j in range(133):
-                sample_2d[0, j, 0] = data[str(i+length*(part-1))]['keypoints_2d'][str(j)]['x']
-                sample_2d[0, j, 1] = data[str(i+length*(part-1))]['keypoints_2d'][str(j)]['y']
-                sample_3d[0, j, 0] = data[str(i+length*(part-1))]['keypoints_3d'][str(j)]['x']
-                sample_3d[0, j, 1] = data[str(i+length*(part-1))]['keypoints_3d'][str(j)]['y']
-                sample_3d[0, j, 2] = data[str(i+length*(part-1))]['keypoints_3d'][str(j)]['z']
-            input_list.append(sample_2d)
-            target_list.append(sample_3d)
-    return input_list, target_list
+    bbox_list = []
+    if type == 'train':
+        if (task == 1) or (task == 2)  or ('2D' in str(task)):
+            data = json.load(open(data_path+'/2Dto3D_train.json'))
+            length = len(data)
+            for i in range(length):
+                sample_2d = torch.zeros(1, 133, 2)
+                sample_3d = torch.zeros(1, 133, 3)
+                for j in range(133):
+                    sample_2d[0, j, 0] = data[str(i)]['keypoints_2d'][str(j)]['x']
+                    sample_2d[0, j, 1] = data[str(i)]['keypoints_2d'][str(j)]['y']
+                    sample_3d[0, j, 0] = data[str(i)]['keypoints_3d'][str(j)]['x']
+                    sample_3d[0, j, 1] = data[str(i)]['keypoints_3d'][str(j)]['y']
+                    sample_3d[0, j, 2] = data[str(i)]['keypoints_3d'][str(j)]['z']
+                input_list.append(sample_2d)
+                target_list.append(sample_3d)
+            return input_list, target_list
+        elif (task == 3) or ('RGB' in str(task)):
+            data = json.load(open(data_path+'/RGBto3D_train.json'))
+            length = len(data)
+            for i in range(100):
+                sample_3d = torch.zeros(1, 133, 3)
+                bbox = torch.zeros(1,4)
+                bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
+                bbox[0, 1] = int(data[str(i)]['bbox']['y_min'])
+                bbox[0, 2] = int(data[str(i)]['bbox']['x_max'])
+                bbox[0, 3] = int(data[str(i)]['bbox']['y_max'])
+                bbox_list.append(bbox)
+                for j in range(133):
+                    sample_3d[0, j, 0] = data[str(i)]['keypoints_3d'][str(j)]['x']
+                    sample_3d[0, j, 1] = data[str(i)]['keypoints_3d'][str(j)]['y']
+                    sample_3d[0, j, 2] = data[str(i)]['keypoints_3d'][str(j)]['z']
+                input_list.append(data[str(i)]['image_path'])
+                target_list.append(sample_3d)
+            return input_list, target_list, bbox_list
+    elif type == 'test':
+        if (task == 1)  or (('2D' in str(task)) and ('I2D' not in str(task))):
+            data = json.load(open(data_path+'/2Dto3D_test_2d.json'))
+            length = len(data)
+            for i in range(length):
+                sample_2d = torch.zeros(1, 133, 2)
+                for j in range(133):
+                    sample_2d[0, j, 0] = data[str((i//4)*8+(i%4))]['keypoints_2d'][str(j)]['x']
+                    sample_2d[0, j, 1] = data[str((i//4)*8+(i%4))]['keypoints_2d'][str(j)]['y']
+                id_list.append((i//4)*8+(i%4))
+                input_list.append(sample_2d)
+            return id_list, input_list
+        elif (task == 2) or ('I2D' in str(task)):
+            data = json.load(open(data_path+'/I2Dto3D_test_2d.json'))
+            length = len(data)
+            for i in range(length):
+                sample_2d = torch.zeros(1, 133, 2)
+                for j in range(133):
+                    sample_2d[0, j, 0] = data[str((i//4)*8+(i%4)+4)]['keypoints_2d'][str(j)]['x']
+                    sample_2d[0, j, 1] = data[str((i//4)*8+(i%4)+4)]['keypoints_2d'][str(j)]['y']
+                id_list.append((i//4)*8+(i%4)+4)
+                input_list.append(sample_2d)
+            return id_list, input_list
+        elif (task == 3) or ('RGB' in str(task)):
+            data = json.load(open(data_path+'/RGBto3D_test_img.json'))
+            length = len(data)
+            for i in range(length):
+                id_list.append(i)
+                input_list.append(data[str(i)]['image_path'])
+                bbox = torch.zeros(1, 4)
+                bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
+                bbox[0, 1] = int(data[str(i)]['bbox']['y_min'])
+                bbox[0, 2] = int(data[str(i)]['bbox']['x_max'])
+                bbox[0, 3] = int(data[str(i)]['bbox']['y_max'])
+                bbox_list.append(bbox)
+            return id_list, input_list, bbox_list
 
 def get_limb(X, Y, Z=None, id1=0, id2=1):
     if Z is not None:
