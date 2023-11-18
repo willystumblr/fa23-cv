@@ -39,7 +39,7 @@ def main(args):
     set_seed(args.seed)
 
     train_dataloader = prepare_dataloader(args.batch_size, "train", args.image_path)
-    eval_dataloader = prepare_dataloader(64, "dev", args.image_path)
+    eval_dataloader = prepare_dataloader(args.eval_batch_size, "dev", args.image_path)
 
     # 2. Define the model
     device = get_device()
@@ -101,6 +101,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=10)
+    parser.add_argument("--eval_batch_size", type=int, default=64)
     parser.add_argument("--num_epochs", type=int, default=2)
     parser.add_argument("--print_interval", type=int, default=800)
     parser.add_argument("--seed", type=int, default=0)
