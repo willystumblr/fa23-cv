@@ -34,18 +34,19 @@ class CustomEvalDataset(Dataset):
 imgresizepath = "data/h3wb/reimages/"
 
 
-def prepare_dataloader(batch_size, set_type, image_path=imgresizepath, annotation_path="data/h3wb/annotations"):
+def prepare_dataloader(
+    batch_size,
+    set_type,
+    image_path=imgresizepath,
+    annotation_path="data/h3wb/annotations",
+):
     assert set_type in ["train", "dev"], "set_type must be either train or dev"
     input_list, target_list, _ = json_loader(
         f"{annotation_path}/{set_type}.json", 3, "train"
     )
     print(f"json loaded")
 
-    input_list = input_list[: len(input_list)]
-    target_list = target_list[: len(target_list)]
-
     img_list = []
-
     # Making an actual torch.tensor out of images
     transform = transforms.Compose([transforms.ToTensor()])
     for input in tqdm(input_list):
@@ -60,10 +61,55 @@ def prepare_dataloader(batch_size, set_type, image_path=imgresizepath, annotatio
     prefix_size = target_list.size()[:-2]
     target_list = target_list.view(*prefix_size, 399).squeeze(dim=1)  # [100, 399]
 
-    batch_size = batch_size
     dataset = CustomDataset(img_list, target_list)
     print(f"Dataset size: {len(dataset)}")
     dataloader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=True if set_type == "train" else False
+        dataset,
+        batch_size=batch_size,
+        shuffle=True if set_type == "train" else False,
+        num_workers=4,
     )
     return dataloader
+
+
+class CustomLazyDataset(Dataset):
+    def __init__(self, image_paths, keypoints):
+        self.image_paths = image_paths
+        self.keypoints = keypoints
+        self.transforms = transforms.Compose([transforms.ToTensor()])
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, index):
+        image = Image.open(self.image_paths[index])
+        image = self.transforms(image)
+        return image, self.keypoints[index]
+
+
+def prepare_lazy_dataloader(
+    batch_size,
+    set_type,
+    image_path=imgresizepath,
+    annotation_path="data/h3wb/annotations",
+):
+    assert set_type in ["train", "dev"], "set_type must be either train or dev"
+    input_list, target_list, _ = json_loader(
+        f"{annotation_path}/{set_type}.json", 3, "train"
+    )
+    print(f"json loaded")
+
+    img_paths = [os.path.join(image_path, input) for input in input_list]
+    target_list = torch.stack(target_list)
+    prefix_size = target_list.size()[:-2]
+    target_list = target_list.view(*prefix_size, 399).squeeze(dim=1)  # [100, 399]
+
+    lazy_dataset = CustomLazyDataset(img_paths, target_list)
+    print(f"Dataset size: {len(lazy_dataset)}")
+    lazy_dataloader = DataLoader(
+        lazy_dataset,
+        batch_size=batch_size,
+        shuffle=True if set_type == "train" else False,
+        num_workers=4,
+    )
+    return lazy_dataloader

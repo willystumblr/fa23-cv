@@ -8,7 +8,7 @@ from models.Resnet50 import model_resnet50
 
 from tqdm.auto import tqdm
 import argparse
-from utils.dataset import prepare_dataloader
+from utils.dataset import prepare_dataloader, prepare_lazy_dataloader
 
 from utils.device import get_device
 
@@ -38,8 +38,12 @@ def validate(net, dataloader, device):
 def main(args):
     set_seed(args.seed)
 
-    train_dataloader = prepare_dataloader(args.batch_size, "train", args.image_path, args.annotation_path)
-    eval_dataloader = prepare_dataloader(args.eval_batch_size, "dev", args.image_path, args.annotation_path)
+    if args.lazy:
+        train_dataloader = prepare_lazy_dataloader(args.batch_size, "train", args.image_path, args.annotation_path)
+        eval_dataloader = prepare_lazy_dataloader(args.eval_batch_size, "dev", args.image_path, args.annotation_path)
+    else:
+        train_dataloader = prepare_dataloader(args.batch_size, "train", args.image_path, args.annotation_path)
+        eval_dataloader = prepare_dataloader(args.eval_batch_size, "dev", args.image_path, args.annotation_path)
 
     # 2. Define the model
     device = get_device()
@@ -110,6 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_path", type=str, default="./trained_model.pth")
     parser.add_argument("--image_path", type=str, default="./data/h3wb/reimages/")
     parser.add_argument("--annotation_path", type=str, default="./data/h3wb/annotations")
+    parser.add_argument("--lazy", action="store_true")
     args = parser.parse_args()
 
     main(args)
