@@ -52,7 +52,7 @@ def main(args):
 
     split = "dev" if args.mode == "dev" else "test"
     input_list, target_list, _ = json_loader(
-        f"data/h3wb/annotations/{split}.json", 3, "train"
+        f"{args.annotation_path}/{split}.json", 3, "train"
     )
     print(f"json loaded")
 
@@ -103,6 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--mode", type=str, default="dev")
     parser.add_argument("--image_path", type=str, default="./data/h3wb/reimages/")
+    parser.add_argument("--annotation_path", type=str, default="./data/h3wb/annotations")
     args = parser.parse_args()
 
     assert args.mode in ["dev", "test"], "mode should be either dev or test"

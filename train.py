@@ -38,8 +38,8 @@ def validate(net, dataloader, device):
 def main(args):
     set_seed(args.seed)
 
-    train_dataloader = prepare_dataloader(args.batch_size, "train", args.image_path)
-    eval_dataloader = prepare_dataloader(args.eval_batch_size, "dev", args.image_path)
+    train_dataloader = prepare_dataloader(args.batch_size, "train", args.image_path, args.annotation_path)
+    eval_dataloader = prepare_dataloader(args.eval_batch_size, "dev", args.image_path, args.annotation_path)
 
     # 2. Define the model
     device = get_device()
@@ -108,6 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_pretrained", default=True)
     parser.add_argument("--save_path", type=str, default="./trained_model.pth")
     parser.add_argument("--image_path", type=str, default="./data/h3wb/reimages/")
+    parser.add_argument("--annotation_path", type=str, default="./data/h3wb/annotations")
     args = parser.parse_args()
 
     main(args)

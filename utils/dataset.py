@@ -34,10 +34,10 @@ class CustomEvalDataset(Dataset):
 imgresizepath = "data/h3wb/reimages/"
 
 
-def prepare_dataloader(batch_size, set_type, image_path=imgresizepath):
+def prepare_dataloader(batch_size, set_type, image_path=imgresizepath, annotation_path="data/h3wb/annotations"):
     assert set_type in ["train", "dev"], "set_type must be either train or dev"
     input_list, target_list, _ = json_loader(
-        f"data/h3wb/annotations/{set_type}.json", 3, "train"
+        f"{annotation_path}/{set_type}.json", 3, "train"
     )
     print(f"json loaded")
 
