@@ -34,20 +34,20 @@ def json_loader(data_path, task=1, type='train'):
         elif (task == 3) or ('RGB' in str(task)):
             path = data_path if data_path.endswith(".json") else data_path+'/RGBto3D_train.json'
             data = json.load(open(path))
-            length = len(data)
-            for i in range(length):
+            keys = list(data.keys())
+            for key in keys:
                 sample_3d = torch.zeros(1, 133, 3)
                 bbox = torch.zeros(1,4)
-                bbox[0, 0] = int(data[str(i)]['bbox']['x_min'])
-                bbox[0, 1] = int(data[str(i)]['bbox']['y_min'])
-                bbox[0, 2] = int(data[str(i)]['bbox']['x_max'])
-                bbox[0, 3] = int(data[str(i)]['bbox']['y_max'])
+                bbox[0, 0] = int(data[key]['bbox']['x_min'])
+                bbox[0, 1] = int(data[key]['bbox']['y_min'])
+                bbox[0, 2] = int(data[key]['bbox']['x_max'])
+                bbox[0, 3] = int(data[key]['bbox']['y_max'])
                 bbox_list.append(bbox)
                 for j in range(133):
-                    sample_3d[0, j, 0] = data[str(i)]['keypoints_3d'][str(j)]['x']
-                    sample_3d[0, j, 1] = data[str(i)]['keypoints_3d'][str(j)]['y']
-                    sample_3d[0, j, 2] = data[str(i)]['keypoints_3d'][str(j)]['z']
-                input_list.append(data[str(i)]['image_path'])
+                    sample_3d[0, j, 0] = data[key]['keypoints_3d'][str(j)]['x']
+                    sample_3d[0, j, 1] = data[key]['keypoints_3d'][str(j)]['y']
+                    sample_3d[0, j, 2] = data[key]['keypoints_3d'][str(j)]['z']
+                input_list.append(data[key]['image_path'])
                 target_list.append(sample_3d)
             return input_list, target_list, bbox_list
     elif type == 'test':

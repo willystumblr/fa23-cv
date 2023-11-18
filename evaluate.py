@@ -50,7 +50,7 @@ def test_score(predict_list, target_list):
 
 
 def main(args):
-    print(args.model_path)
+    print(f"evaluating {args.model_path} on dev set")
 
     split = "dev" if args.mode == "dev" else "test"
     input_list, target_list, _ = json_loader(f"data/h3wb/annotations/{split}.json", 3, "train")

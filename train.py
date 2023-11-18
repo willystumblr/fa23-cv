@@ -109,7 +109,7 @@ def main(args):
                 running_loss = 0.0
 
     # 6. Save the model
-    torch.save(net.state_dict(), "trained_model.pth")
+    torch.save(net.state_dict(), args.save_path)
 
 
 if __name__ == "__main__":
@@ -118,7 +118,8 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", type=int, default=5)
     parser.add_argument("--print_interval", type=int, default=200)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--use_pretrained", action="store_true")
+    parser.add_argument("--use_pretrained", default=True)
+    parser.add_argument("--save_path", type=str, default="./trained_model.pth")
     args = parser.parse_args()
 
     main(args)
