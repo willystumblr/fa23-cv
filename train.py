@@ -52,7 +52,7 @@ def main(args):
 
     # 3. Define Loss function and optmizer
     loss_fn = nn.L1Loss()
-    optimizer = optim.Adam(net.parameters(), lr=0.005)
+    optimizer = optim.Adam(net.parameters(), lr=args.learning_rate)
 
     # 4. Training loop
     num_epochs = args.num_epochs
@@ -100,6 +100,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--learning_rate", type=float, default=5e-3)
     parser.add_argument("--batch_size", type=int, default=10)
     parser.add_argument("--eval_batch_size", type=int, default=64)
     parser.add_argument("--num_epochs", type=int, default=2)
