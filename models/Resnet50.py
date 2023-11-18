@@ -4,9 +4,9 @@ import torch.nn as nn
 import torchvision.models as models
 
 class model_resnet50(nn.Module):
-    def __init__(self, num_keypoint=133, pretrained=False):
+    def __init__(self, num_keypoint=133, weights=None):
         super(model_resnet50, self).__init__()
-        self.encoder = models.resnet50(pretrained=pretrained)
+        self.encoder = models.resnet50(weights=weights)
         self.relu = nn.ReLU()
         self.fc1 = nn.Linear(7 * 7 * 512 * 4, 1024)
         self.fc2 = nn.Linear(1024, 1024)

@@ -1,15 +1,18 @@
-import json
-import numpy as np
 import os
 import torch
 import torch.nn as nn
-import torchvision.models as models
+import numpy as np
 from torchvision import transforms
+from torchvision.models import ResNet50_Weights
 from torch.utils.data import DataLoader, Dataset
 import torch.optim as optim
+from models.Resnet50 import model_resnet50
 
 from utils import json_loader
 from PIL import Image
+from tqdm.auto import tqdm
+import argparse
+
 
 class CustomDataset(Dataset):
     def __init__(self, images, keypoints):
@@ -22,127 +25,108 @@ class CustomDataset(Dataset):
     def __getitem__(self, index):
         return self.images[index], self.keypoints[index]
 
-class model_resnet50(nn.Module):
-    def __init__(self, num_keypoint=133, pretrained=False):
-        super(model_resnet50, self).__init__()
-        self.encoder = models.resnet50(pretrained=pretrained)
-        self.relu = nn.ReLU()
-        self.fc1 = nn.Linear(7 * 7 * 512 * 4, 1024)
-        self.fc2 = nn.Linear(1024, 1024)
-        # self.fc3 = nn.Linear(7 * 7 * 512, 512)
-        # self.fc4 = nn.Linear(512, 512)
-        self.outlayer1 = nn.Linear(1024, num_keypoint*3)
-        # self.outlayer2 = nn.Linear(512, num_keypoint*2)
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
-    def forward(self, x):
-        x = (x - 0.45) / 0.225
-        x = self.encoder.conv1(x)
-        x = self.encoder.bn1(x)
-        x = self.encoder.relu(x)
-        x = self.encoder.layer1(self.encoder.maxpool(x))
-        x = self.encoder.layer2(x)  # 100352 = 28 x 28 x 128
-        x = self.encoder.layer3(x)  # 50176 = 14 x 14 x 256
-        x = self.encoder.layer4(x)  # 25088 = 7 x 7 x 512 # 100352
-        x = x.reshape(x.shape[0], -1)
-        x1 = self.relu(self.fc1(x))
-        x1 = self.relu(self.fc2(x1))
-        x1 = (self.outlayer1(x1))
-        # x2 = self.relu(self.fc3(x))
-        # x2 = self.relu(self.fc4(x2))
-        # x2 = (self.outlayer2(x2))
-        return x1 #, x2
-    
-    
-imgpath = "data/h3wb/images/"
+
 imgresizepath = "data/h3wb/reimages/"
 
 
-input_list, target_list, _ = json_loader("data/h3wb/annotations",3,'train')
+def main(args):
+    input_list, target_list, _ = json_loader("data/h3wb/annotations", 3, "train")
+    print(f"json loaded")
 
-input_list = input_list[:len(input_list)//2]
-target_list = target_list[:len(target_list)//2]
+    input_list = input_list[: len(input_list) // 8]
+    target_list = target_list[: len(target_list) // 8]
 
-num_data = len(input_list)
-img_list = []
+    img_list = []
 
-# Making an actual torch.tensor out of images
-transform = transforms.Compose([transforms.ToTensor()])
-i = 0
-for input in input_list:
-    if(i % 200 == 0):
-        print(i,'/',len(input_list))
-    image_dir = '../data/h3wb/images'
-    sample_img = Image.open(os.path.join(imgresizepath, input))
-    torch_img = transform(sample_img)
-    img_list.append(torch_img)
-    i+=1
-    
-img_list = torch.stack(img_list) # [100, 3, 244, 244]
+    # Making an actual torch.tensor out of images
+    transform = transforms.Compose([transforms.ToTensor()])
+    for input in tqdm(input_list):
+        sample_img = Image.open(os.path.join(imgresizepath, input))
+        torch_img = transform(sample_img)
+        img_list.append(torch_img)
 
-# Making an actual torch.tensor out of target_list
-target_list = torch.stack(target_list)
-prefix_size = target_list.size()[:-2]
-target_list = target_list.view(*prefix_size,399).squeeze(dim=1) # [100, 399]
+    img_list = torch.stack(img_list)  # [100, 3, 244, 244]
 
-###########################################################
+    # Making an actual torch.tensor out of target_list
+    target_list = torch.stack(target_list)
+    prefix_size = target_list.size()[:-2]
+    target_list = target_list.view(*prefix_size, 399).squeeze(dim=1)  # [100, 399]
 
-# 1. Creating DataLoader
+    ###########################################################
 
-batch_size = 10
-dataset = CustomDataset(img_list, target_list)
-dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # 0. fix random seed
+    set_seed(args.seed)
 
-# 2. Define the model 
+    # 1. Creating DataLoader    
+    batch_size = args.batch_size
+    dataset = CustomDataset(img_list, target_list)
+    print(f"Dataset size: {len(dataset)}")
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-net = model_resnet50(pretrained=False).to(device)
+    # 2. Define the model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    weights = ResNet50_Weights.DEFAULT if args.use_pretrained else None
+    net = model_resnet50(weights=weights).to(device)
 
-if os.path.exists('./net.pth'):
-    net.load_state_dict(torch.load('./net.pth', map_location=device))
-    print('load pretrained weight')
+    if os.path.exists("./net.pth"):
+        net.load_state_dict(torch.load("./net.pth", map_location=device))
+        print("load pretrained weight")
 
-# 3. Define Loss function 
+    # 3. Define Loss function and optmizer
+    loss_fn = nn.MSELoss()
+    optimizer = optim.Adam(net.parameters(), lr=0.005)
 
-loss_fn = nn.MSELoss()
+    # 4. Training loop
+    num_epochs = args.num_epochs
+    print_interval = args.print_interval
 
-# 4. Define Optimizer 
+    for epoch in range(num_epochs):
+        net.train()
+        running_loss = 0.0
 
-optimizer = optim.Adam(net.parameters(), lr=0.005)
+        for i, (images, keypoints) in enumerate(tqdm(dataloader)):
+            images, keypoints = images.to(device), keypoints.to(device)
 
-# 5. Training loop
+            # Forward pass
+            outputs = net(images)
 
-num_epochs = 10  # Adjust as needed
-print_interval = 100  # Adjust as needed
+            # Compute loss
+            loss = loss_fn(outputs, keypoints)
 
-for epoch in range(num_epochs):
-    net.train()
-    running_loss = 0.0
+            # Backward pass and optimization
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-    for i, (images, keypoints) in enumerate(dataloader, 1):
-        images, keypoints = images.to(device), keypoints.to(device)
+            running_loss += loss.item()
 
-        # Forward pass
-        outputs = net(images)
+            # Print statistics
+            if (i + 1) % print_interval == 0:
+                average_loss = running_loss / print_interval
+                print(
+                    f"Epoch [{epoch + 1}/{num_epochs}], Batch [{i+1}/{len(dataloader)}], Loss: {average_loss}"
+                )
+                running_loss = 0.0
 
-        # Compute loss
-        loss = loss_fn(outputs, keypoints)
-
-        # Backward pass and optimization
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        running_loss += loss.item()
-
-        # Print statistics
-        if i % print_interval == 0:
-            average_loss = running_loss / print_interval
-            print(f"Epoch [{epoch + 1}/{num_epochs}], Batch [{i}/{len(dataloader)}], Loss: {average_loss}")
-            running_loss = 0.0
-
-    
-
-# 7. Save the model
-torch.save(net.state_dict(), "trained_model.pth")
+    # 6. Save the model
+    torch.save(net.state_dict(), "trained_model.pth")
 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--num_epochs", type=int, default=1)
+    parser.add_argument("--print_interval", type=int, default=100)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--use_pretrained", type=bool, default=False)
+    args = parser.parse_args()
+
+    main(args)
