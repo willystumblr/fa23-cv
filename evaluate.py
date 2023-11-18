@@ -13,8 +13,6 @@ from utils.dataset import CustomEvalDataset
 
 from utils.device import get_device
 
-imgresizepath = "data/h3wb/reimages/"
-
 
 def test_score(predict_list, target_list):
     predict_list = torch.cat(predict_list, dim=0)
@@ -37,7 +35,7 @@ def test_score(predict_list, target_list):
         torch.mean(torch.sqrt(torch.sum(torch.square(diff21), dim=-1))).item()
         + torch.mean(torch.sqrt(torch.sum(torch.square(diff22), dim=-1))).item()
     )
-    
+
     for i in range(6):
         count[i] = round(count[i], 1)
 
@@ -53,7 +51,9 @@ def main(args):
     print(f"evaluating {args.model_path} on dev set")
 
     split = "dev" if args.mode == "dev" else "test"
-    input_list, target_list, _ = json_loader(f"data/h3wb/annotations/{split}.json", 3, "train")
+    input_list, target_list, _ = json_loader(
+        f"data/h3wb/annotations/{split}.json", 3, "train"
+    )
     print(f"json loaded")
 
     input_list = input_list[: len(input_list)]
@@ -64,7 +64,7 @@ def main(args):
     # Making an actual torch.tensor out of images
     transform = transforms.Compose([transforms.ToTensor()])
     for input in tqdm(input_list):
-        sample_img = Image.open(os.path.join(imgresizepath, input))
+        sample_img = Image.open(os.path.join(args.image_path, input))
         torch_img = transform(sample_img)
         img_list.append(torch_img)
 
@@ -99,11 +99,12 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=str, required=True)
+    parser.add_argument("--model_path", type=str, default="./trained_model.pth")
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--mode", type=str, default="dev")
+    parser.add_argument("--image_path", type=str, default="./data/h3wb/reimages/")
     args = parser.parse_args()
-    
+
     assert args.mode in ["dev", "test"], "mode should be either dev or test"
 
     main(args)

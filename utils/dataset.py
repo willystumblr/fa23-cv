@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader, Dataset
 from utils import json_loader
 from PIL import Image
 from tqdm.auto import tqdm
-from utils.dataset import CustomDataset
 
 
 class CustomDataset(Dataset):
@@ -35,7 +34,7 @@ class CustomEvalDataset(Dataset):
 imgresizepath = "data/h3wb/reimages/"
 
 
-def prepare_dataloader(batch_size, set_type):
+def prepare_dataloader(batch_size, set_type, image_path=imgresizepath):
     assert set_type in ["train", "dev"], "set_type must be either train or dev"
     input_list, target_list, _ = json_loader(
         f"data/h3wb/annotations/{set_type}.json", 3, "train"
@@ -50,7 +49,7 @@ def prepare_dataloader(batch_size, set_type):
     # Making an actual torch.tensor out of images
     transform = transforms.Compose([transforms.ToTensor()])
     for input in tqdm(input_list):
-        sample_img = Image.open(os.path.join(imgresizepath, input))
+        sample_img = Image.open(os.path.join(image_path, input))
         torch_img = transform(sample_img)
         img_list.append(torch_img)
 
