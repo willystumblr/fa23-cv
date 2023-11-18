@@ -6,7 +6,9 @@ import json
 from PIL import Image
 import numpy as np
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from utils.device import get_device
+
+device = get_device()
 
 # cross_validation =
 # 0: train/test split, 1: 0-15999 of train sample as val, ..., 5: 64000-79999 of train sample as val

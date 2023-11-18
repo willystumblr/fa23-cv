@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from torchvision import transforms
 from torchvision.models import ResNet50_Weights
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import torch.optim as optim
 from models.Resnet50 import model_resnet50
 
@@ -12,22 +12,16 @@ from utils import json_loader
 from PIL import Image
 from tqdm.auto import tqdm
 import argparse
+from utils.dataset import CustomDataset
+
+from utils.device import get_device
 
 
-class CustomDataset(Dataset):
-    def __init__(self, images, keypoints):
-        self.images = images
-        self.keypoints = keypoints
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, index):
-        return self.images[index], self.keypoints[index]
 
 def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    torch.mps.manual_seed(seed)
     np.random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -37,6 +31,8 @@ imgresizepath = "data/h3wb/reimages/"
 
 
 def main(args):
+    set_seed(args.seed)
+    
     input_list, target_list, _ = json_loader("data/h3wb/annotations", 3, "train")
     print(f"json loaded")
 
@@ -61,9 +57,6 @@ def main(args):
 
     ###########################################################
 
-    # 0. fix random seed
-    set_seed(args.seed)
-
     # 1. Creating DataLoader    
     batch_size = args.batch_size
     dataset = CustomDataset(img_list, target_list)
@@ -71,8 +64,7 @@ def main(args):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     # 2. Define the model
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    device = get_device()
     weights = ResNet50_Weights.DEFAULT if args.use_pretrained else None
     net = model_resnet50(weights=weights).to(device)
 
@@ -81,7 +73,7 @@ def main(args):
         print("load pretrained weight")
 
     # 3. Define Loss function and optmizer
-    loss_fn = nn.MSELoss()
+    loss_fn = nn.L1Loss()
     optimizer = optim.Adam(net.parameters(), lr=0.005)
 
     # 4. Training loop
@@ -110,7 +102,7 @@ def main(args):
 
             # Print statistics
             if (i + 1) % print_interval == 0:
-                average_loss = running_loss / print_interval
+                average_loss = round(running_loss / print_interval, 4)
                 print(
                     f"Epoch [{epoch + 1}/{num_epochs}], Batch [{i+1}/{len(dataloader)}], Loss: {average_loss}"
                 )
@@ -122,11 +114,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--num_epochs", type=int, default=1)
-    parser.add_argument("--print_interval", type=int, default=100)
+    parser.add_argument("--batch_size", type=int, default=10)
+    parser.add_argument("--num_epochs", type=int, default=5)
+    parser.add_argument("--print_interval", type=int, default=200)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--use_pretrained", type=bool, default=False)
+    parser.add_argument("--use_pretrained", action="store_true")
     args = parser.parse_args()
 
     main(args)
