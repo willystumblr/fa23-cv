@@ -4,7 +4,6 @@ from torchvision import transforms
 from torchvision.models import ResNet50_Weights
 from torch.utils.data import DataLoader
 from models.Resnet50 import model_resnet50
-import json
 
 from utils import json_loader
 from PIL import Image
@@ -53,7 +52,8 @@ def test_score(predict_list, target_list):
 def main(args):
     print(args.model_path)
 
-    input_list, target_list, _ = json_loader("data/h3wb/annotations", 3, "train")
+    split = "dev" if args.mode == "dev" else "test"
+    input_list, target_list, _ = json_loader(f"data/h3wb/annotations/{split}.json", 3, "train")
     print(f"json loaded")
 
     input_list = input_list[: len(input_list) // 800]
@@ -101,6 +101,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", type=str, required=True)
     parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--mode", type=str, default="dev")
     args = parser.parse_args()
+    
+    assert args.mode in ["dev", "test"], "mode should be either dev or test"
 
     main(args)

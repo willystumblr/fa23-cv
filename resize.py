@@ -1,8 +1,3 @@
-import json
-import numpy as np
-import os
-import torch
-import torch.nn as nn
 import torchvision.models as models
 from utils import json_loader
 import torchvision.transforms as transforms

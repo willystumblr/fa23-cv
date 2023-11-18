@@ -32,7 +32,8 @@ def json_loader(data_path, task=1, type='train'):
                 target_list.append(sample_3d)
             return input_list, target_list
         elif (task == 3) or ('RGB' in str(task)):
-            data = json.load(open(data_path+'/RGBto3D_train.json'))
+            path = data_path if data_path.endswith(".json") else data_path+'/RGBto3D_train.json'
+            data = json.load(open(path))
             length = len(data)
             for i in range(length):
                 sample_3d = torch.zeros(1, 133, 3)

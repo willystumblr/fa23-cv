@@ -33,7 +33,7 @@ imgresizepath = "data/h3wb/reimages/"
 def main(args):
     set_seed(args.seed)
     
-    input_list, target_list, _ = json_loader("data/h3wb/annotations", 3, "train")
+    input_list, target_list, _ = json_loader("data/h3wb/annotations/train.json", 3, "train")
     print(f"json loaded")
 
     input_list = input_list[: len(input_list) // 8]
