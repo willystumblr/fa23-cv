@@ -18,8 +18,6 @@ if __name__ == "__main__":
     u = 0
 
     notfoundlist = []
-    mean = (0.485, 0.456, 0.456)
-    std = (0.229, 0.224, 0.225)
     for input in tqdm(input_list):
         try:
             original_image = Image.open(imgpath + input)
@@ -27,11 +25,7 @@ if __name__ == "__main__":
             [left, top, right, bottom] = bbox
             cropped_image = crop(original_image, top, left, bottom - top, right - left)
             transform = transforms.Compose(
-                [
-                    transforms.Resize((224, 224)),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean, std),
-                ]
+                [transforms.Resize((224, 224)), transforms.ToTensor()]
             )
             resized_image = transform(cropped_image)
             resized_image_pil = transforms.ToPILImage()(resized_image)
