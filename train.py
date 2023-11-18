@@ -39,11 +39,11 @@ def main(args):
     set_seed(args.seed)
 
     if args.lazy:
-        train_dataloader = prepare_lazy_dataloader(args.batch_size, "train", args.image_path, args.annotation_path)
-        eval_dataloader = prepare_lazy_dataloader(args.eval_batch_size, "dev", args.image_path, args.annotation_path)
+        train_dataloader = prepare_lazy_dataloader(args, "train")
+        eval_dataloader = prepare_lazy_dataloader(args, "dev")
     else:
-        train_dataloader = prepare_dataloader(args.batch_size, "train", args.image_path, args.annotation_path)
-        eval_dataloader = prepare_dataloader(args.eval_batch_size, "dev", args.image_path, args.annotation_path)
+        train_dataloader = prepare_dataloader(args, "train")
+        eval_dataloader = prepare_dataloader(args, "dev")
 
     # 2. Define the model
     device = get_device()
@@ -62,7 +62,7 @@ def main(args):
     num_epochs = args.num_epochs
     print_interval = args.print_interval
     best_eval_loss = float("inf")
-    
+
     for epoch in range(num_epochs):
         net.train()
         running_loss = 0.0
@@ -113,8 +113,11 @@ if __name__ == "__main__":
     parser.add_argument("--use_pretrained", default=True)
     parser.add_argument("--save_path", type=str, default="./trained_model.pth")
     parser.add_argument("--image_path", type=str, default="./data/h3wb/reimages/")
-    parser.add_argument("--annotation_path", type=str, default="./data/h3wb/annotations")
+    parser.add_argument(
+        "--annotation_path", type=str, default="./data/h3wb/annotations"
+    )
     parser.add_argument("--lazy", action="store_true")
+    parser.add_argument("--num_workers", type=int, default=0)
     args = parser.parse_args()
 
     main(args)

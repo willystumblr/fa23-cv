@@ -35,14 +35,12 @@ imgresizepath = "data/h3wb/reimages/"
 
 
 def prepare_dataloader(
-    batch_size,
+    args,
     set_type,
-    image_path=imgresizepath,
-    annotation_path="data/h3wb/annotations",
 ):
     assert set_type in ["train", "dev"], "set_type must be either train or dev"
     input_list, target_list, _ = json_loader(
-        f"{annotation_path}/{set_type}.json", 3, "train"
+        f"{args.annotation_path}/{set_type}.json", 3, "train"
     )
     print(f"json loaded")
 
@@ -50,7 +48,7 @@ def prepare_dataloader(
     # Making an actual torch.tensor out of images
     transform = transforms.Compose([transforms.ToTensor()])
     for input in tqdm(input_list):
-        sample_img = Image.open(os.path.join(image_path, input))
+        sample_img = Image.open(os.path.join(args.image_path, input))
         torch_img = transform(sample_img)
         img_list.append(torch_img)
 
@@ -65,9 +63,9 @@ def prepare_dataloader(
     print(f"Dataset size: {len(dataset)}")
     dataloader = DataLoader(
         dataset,
-        batch_size=batch_size,
+        batch_size=args.batch_size,
         shuffle=True if set_type == "train" else False,
-        num_workers=4,
+        num_workers=args.num_workers,
     )
     return dataloader
 
@@ -88,18 +86,16 @@ class CustomLazyDataset(Dataset):
 
 
 def prepare_lazy_dataloader(
-    batch_size,
+    args,
     set_type,
-    image_path=imgresizepath,
-    annotation_path="data/h3wb/annotations",
 ):
     assert set_type in ["train", "dev"], "set_type must be either train or dev"
     input_list, target_list, _ = json_loader(
-        f"{annotation_path}/{set_type}.json", 3, "train"
+        f"{args.annotation_path}/{set_type}.json", 3, "train"
     )
     print(f"json loaded")
 
-    img_paths = [os.path.join(image_path, input) for input in input_list]
+    img_paths = [os.path.join(args.image_path, input) for input in input_list]
     target_list = torch.stack(target_list)
     prefix_size = target_list.size()[:-2]
     target_list = target_list.view(*prefix_size, 399).squeeze(dim=1)  # [100, 399]
@@ -108,8 +104,8 @@ def prepare_lazy_dataloader(
     print(f"Dataset size: {len(lazy_dataset)}")
     lazy_dataloader = DataLoader(
         lazy_dataset,
-        batch_size=batch_size,
+        batch_size=args.batch_size,
         shuffle=True if set_type == "train" else False,
-        num_workers=4,
+        num_workers=args.num_workers,
     )
     return lazy_dataloader
