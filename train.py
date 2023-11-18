@@ -36,8 +36,8 @@ def main(args):
     input_list, target_list, _ = json_loader("data/h3wb/annotations/train.json", 3, "train")
     print(f"json loaded")
 
-    input_list = input_list[: len(input_list) // 8]
-    target_list = target_list[: len(target_list) // 8]
+    input_list = input_list[: len(input_list)]
+    target_list = target_list[: len(target_list)]
 
     img_list = []
 

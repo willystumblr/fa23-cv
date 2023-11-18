@@ -56,8 +56,8 @@ def main(args):
     input_list, target_list, _ = json_loader(f"data/h3wb/annotations/{split}.json", 3, "train")
     print(f"json loaded")
 
-    input_list = input_list[: len(input_list) // 800]
-    target_list = target_list[: len(target_list) // 800]
+    input_list = input_list[: len(input_list)]
+    target_list = target_list[: len(target_list)]
 
     img_list = []
 
@@ -82,8 +82,8 @@ def main(args):
     weights = ResNet50_Weights.DEFAULT
     net = model_resnet50(weights=weights).to(device)
 
-    # net.load_state_dict(torch.load(args.model_path, map_location=device))
-    # print("load trained weight")
+    net.load_state_dict(torch.load(args.model_path, map_location=device))
+    print("load trained weight")
 
     net.eval()
     predict_list = []
