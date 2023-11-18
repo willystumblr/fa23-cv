@@ -1,11 +1,21 @@
 import json
 import random
+import os 
 
 if __name__ == "__main__":
     random.seed(0)
 
     data = [None for _ in range(100)]
     data = json.load(open('data/h3wb/annotations/RGBto3D_train.json'))
+        
+    # check image exists
+    remove_list = []
+    for key in data.keys():
+        if not os.path.exists("data/h3wb/reimages/" + data[key]["image_path"]):
+            remove_list.append(key)
+    for key in remove_list:
+        del data[key]
+    
     num_total_data = len(data)
     print("total data: ", num_total_data)
     keys = list(data.keys())
