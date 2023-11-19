@@ -1,8 +1,10 @@
 import os
 import torch
+import torchvision
 from torchvision import transforms
 from torchvision.models import ResNet50_Weights
 from torch.utils.data import DataLoader
+from models.CombinedModel import model_resnet50_4_with_sobel, model_resnet50_with_sobel
 from models.Resnet50 import model_resnet50
 
 from utils import json_loader
@@ -80,8 +82,13 @@ def main(args):
 
     device = get_device()
     weights = ResNet50_Weights.DEFAULT
-    net = model_resnet50(weights=weights).to(device)
-
+    if args.model_name == "resnet50_4_with_sobel":
+        net = model_resnet50_4_with_sobel(weights=weights).to(device)
+    elif args.model_name == "resnet50_with_sobel":
+        net = model_resnet50_with_sobel(weights=weights).to(device)
+    else:
+        net = model_resnet50(weights=weights).to(device)
+    print(f"Using {args.model_name}")
     net.load_state_dict(torch.load(args.model_path, map_location=device))
     print("load trained weight")
 
@@ -102,8 +109,11 @@ if __name__ == "__main__":
     parser.add_argument("--model_path", type=str, default="./trained_model.pth")
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--mode", type=str, default="dev")
+    parser.add_argument("--model_name", type=str, default="resnet50")
     parser.add_argument("--image_path", type=str, default="./data/h3wb/reimages/")
-    parser.add_argument("--annotation_path", type=str, default="./data/h3wb/annotations")
+    parser.add_argument(
+        "--annotation_path", type=str, default="./data/h3wb/annotations"
+    )
     args = parser.parse_args()
 
     assert args.mode in ["dev", "test"], "mode should be either dev or test"

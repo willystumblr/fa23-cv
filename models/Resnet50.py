@@ -38,14 +38,22 @@ class model_resnet50(nn.Module):
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    net = model_resnet50(pretrained=False).to(device)
+    net = model_resnet50(weights=None).to(device)
     if os.path.exists('./net.pth'):
         net.load_state_dict(torch.load('./net.pth', map_location=device))
         print('load pretrained weight')
 
-    batch_size = 2
+    batch_size = 1
     a = torch.rand(batch_size, 3, 224, 224).to(device)
     b = net(a)
     print(b.shape)
+    
+    from thop import profile
+    flops, params = profile(net, inputs=(a, ), verbose=False)
+    print(f"FLOPs: {flops / 1e9} billion")
+    print(f"Parameters: {params / 1e6} million")
+    print(
+        f"Trainable Parameters: {sum(p.numel() for p in net.parameters() if p.requires_grad) / 1e6} million"
+    )
 
 

@@ -2,12 +2,12 @@ import os
 import torch
 import torch.nn as nn
 import numpy as np
-from torchvision.models import ResNet50_Weights
 import torch.optim as optim
-from models.Resnet50 import model_resnet50
-
+import torchvision
 from tqdm.auto import tqdm
 import argparse
+from models.CombinedModel import model_resnet50_4_with_sobel, model_resnet50_with_sobel
+from models.Resnet50 import model_resnet50
 from utils.dataset import prepare_dataloader, prepare_lazy_dataloader
 
 from utils.device import get_device
@@ -16,7 +16,6 @@ from utils.device import get_device
 def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.mps.manual_seed(seed)
     np.random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -47,8 +46,31 @@ def main(args):
 
     # 2. Define the model
     device = get_device()
-    weights = ResNet50_Weights.DEFAULT if args.use_pretrained else None
-    net = model_resnet50(weights=weights).to(device)
+    print(f"Using {args.model_name}")
+    if args.model_name == "resnet50_4_with_sobel":
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet50_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet50_4_with_sobel(weights=weights).to(device)
+    elif args.model_name == "resnet50_with_sobel":
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet50_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet50_with_sobel(weights=weights).to(device)
+    else:
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet50_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet50(weights=weights).to(device)
 
     if os.path.exists("./net.pth"):
         net.load_state_dict(torch.load("./net.pth", map_location=device))
@@ -110,7 +132,8 @@ if __name__ == "__main__":
     parser.add_argument("--num_epochs", type=int, default=2)
     parser.add_argument("--print_interval", type=int, default=800)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--use_pretrained", default=True)
+    parser.add_argument("--use_pretrained", action="store_true")
+    parser.add_argument("--model_name", type=str, default="resnet50")
     parser.add_argument("--save_path", type=str, default="./trained_model.pth")
     parser.add_argument("--image_path", type=str, default="./data/h3wb/reimages/")
     parser.add_argument(
