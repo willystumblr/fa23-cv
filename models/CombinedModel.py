@@ -63,11 +63,11 @@ class model_resnet50_4(nn.Module):
         x1 = self.outlayer1(x1)
         return x1
 
-class model_resnet50_4_with_sift(nn.Module):
+class model_resnet50_with_sift(nn.Module):
     def __init__(self, weights=None, num_keypoints=133, num_sift_features=128):
-        super(model_resnet50_4_with_sift, self).__init__()
-        # Initialize the ResNet with 4 channels
-        self.resnet = model_resnet50_4(weights=weights)
+        super(model_resnet50_with_sift, self).__init__()
+        
+        self.resnet = model_resnet50(weights=weights)
         # Define a processing layer for SIFT features
         self.sift_processor = nn.Sequential(
             nn.Linear(num_keypoints * num_sift_features, 1024),
@@ -83,7 +83,7 @@ class model_resnet50_4_with_sift(nn.Module):
         image_features = self.resnet(x)
 
         # Flatten and process the SIFT features
-        sift_features = sift_features.view(sift_features.size(0), -1)
+        # sift_features = sift_features.view(sift_features.size(0), -1)
         sift_features = self.sift_processor(sift_features)
 
         # Concatenate the image and SIFT features
