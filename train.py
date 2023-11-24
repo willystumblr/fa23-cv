@@ -6,9 +6,9 @@ import torch.optim as optim
 import torchvision
 from tqdm.auto import tqdm
 import argparse
-from models.CombinedModel import model_resnet50_4_with_sobel, model_resnet50_with_sobel
+from models.CombinedModel import model_resnet50_4_with_sobel, model_resnet50_with_sobel, model_resnet50_with_sift
 from models.Resnet50 import model_resnet50
-from utils.dataset import prepare_dataloader, prepare_lazy_dataloader
+from utils.dataset import prepare_dataloader, prepare_lazy_dataloader, prepare_sift_dataloader
 
 from utils.device import get_device
 
@@ -21,13 +21,17 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def validate(net, dataloader, device):
+def validate(args, net, dataloader, device):
     net.eval()
     loss_fn = nn.L1Loss()
     running_loss = 0.0
-    for images, keypoints in tqdm(dataloader):
-        images, keypoints = images.to(device), keypoints.to(device)
-        outputs = net(images)
+    for components in tqdm(dataloader):
+        images, keypoints = components[0].float().to(device), components[1].float().to(device)
+        if 'sift' in args.model_name:
+            descriptors = components[2].float().to(device)
+            outputs = net(images, descriptors)
+        else:
+            outputs = net(images)
         loss = loss_fn(outputs, keypoints)
         running_loss += loss.item()
     average_loss = round(running_loss / len(dataloader), 4)
@@ -40,6 +44,9 @@ def main(args):
     if args.lazy:
         train_dataloader = prepare_lazy_dataloader(args, "train")
         eval_dataloader = prepare_lazy_dataloader(args, "dev")
+    elif 'sift' in args.model_name:
+        train_dataloader = prepare_sift_dataloader(args, "dev")
+        eval_dataloader = prepare_sift_dataloader(args, "dev")
     else:
         train_dataloader = prepare_dataloader(args, "train")
         eval_dataloader = prepare_dataloader(args, "dev")
@@ -63,6 +70,14 @@ def main(args):
             weights = None
             print("Training from scratch")
         net = model_resnet50_with_sobel(weights=weights).to(device)
+    elif args.model_name == "resnet50_with_sift":
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet50_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet50_with_sift(weights=weights).to(device) 
     else:
         if args.use_pretrained:
             weights = torchvision.models.ResNet50_Weights.DEFAULT
@@ -89,11 +104,25 @@ def main(args):
         net.train()
         running_loss = 0.0
 
-        for i, (images, keypoints) in enumerate(tqdm(train_dataloader)):
-            images, keypoints = images.to(device), keypoints.to(device)
-
+        for i, components in enumerate(tqdm(train_dataloader)):
+            # print(len(components))
+            # try:
+            images, keypoints = components[0].float().to(device), components[1].float().to(device)
+            if 'sift' in args.model_name:
+                descriptors = components[2].float().to(device)
+                # print(descriptors.shape)
+                outputs = net(images, descriptors)
             # Forward pass
-            outputs = net(images)
+            else:
+                outputs = net(images)
+            # except: ### NOTE: Use the line below (the original) if .float() doesn't work ###
+            #     images, keypoints = components[0].to(device), components[1].float().to(device)
+            #     if 'sift' in args.model_name:
+            #         descriptors = components[2].to(device)
+            #         outputs = net(images, descriptors)
+            #     # Forward pass
+            #     else:
+            #         outputs = net(images)
 
             # Compute loss
             loss = loss_fn(outputs, keypoints)
@@ -114,7 +143,7 @@ def main(args):
                 running_loss = 0.0
 
         with torch.no_grad():
-            eval_loss = validate(net, eval_dataloader, device)
+            eval_loss = validate(args, net, eval_dataloader, device)
             print(f"Validation Loss at Epoch [{epoch + 1}/{num_epochs}]: {eval_loss}")
             if eval_loss < best_eval_loss:
                 best_eval_loss = eval_loss
