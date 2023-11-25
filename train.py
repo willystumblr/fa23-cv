@@ -41,12 +41,12 @@ def validate(args, net, dataloader, device):
 def main(args):
     set_seed(args.seed)
 
-    if args.lazy:
+    if 'sift' in args.model_name:
+        train_dataloader = prepare_sift_dataloader(args, "train")
+        eval_dataloader = prepare_sift_dataloader(args, "dev")
+    elif args.lazy:
         train_dataloader = prepare_lazy_dataloader(args, "train")
         eval_dataloader = prepare_lazy_dataloader(args, "dev")
-    elif 'sift' in args.model_name:
-        train_dataloader = prepare_sift_dataloader(args, "dev")
-        eval_dataloader = prepare_sift_dataloader(args, "dev")
     else:
         train_dataloader = prepare_dataloader(args, "train")
         eval_dataloader = prepare_dataloader(args, "dev")
