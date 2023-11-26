@@ -112,17 +112,18 @@ def prepare_lazy_dataloader(
     return lazy_dataloader
 
 class CustomSIFTDataset(Dataset):
-    def __init__(self, images, keypoints, sift_descriptors):
-        self.images = images
-        self.sift_descriptors = sift_descriptors
+    def __init__(self, image_paths, keypoints):
+        self.image_paths = image_paths
         self.keypoints = keypoints
+        self.transforms = transforms.Compose([transforms.ToTensor()])
 
     def __len__(self):
-        return len(self.images)
+        return len(self.image_paths)
 
     def __getitem__(self, index):
-        image = self.images[index]
-        sift_descriptor = self.sift_descriptors[index]
+        image = Image.open(self.image_paths[index])
+        sift_descriptor = compute_sift_descriptors([image])[0]
+        image = self.transforms(image)
         keypoint = self.keypoints[index]
         return image, keypoint, sift_descriptor
 
@@ -143,10 +144,10 @@ class CustomSIFTEvalDataset(Dataset):
 
 
 def compute_sift_descriptors(images, num_keypoints=133):
-    print("Extracting SIFT descriptors...")
+    # print("Extracting SIFT descriptors...")
     sift = cv2.SIFT_create(num_keypoints)
     sift_descriptors = []
-    for img in tqdm(images):
+    for img in images:
         gray_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
         _, descriptor = sift.detectAndCompute(gray_img, None)
         # If no descriptors were found or there are fewer than num_keypoints, pad with zeros
@@ -173,26 +174,12 @@ def prepare_sift_dataloader(
     )
     print(f"json loaded")
 
-    img_list = []
-    # Making an actual torch.tensor out of images
-    transform = transforms.Compose([transforms.ToTensor()])
-    imgs = []
-    for input in tqdm(input_list):
-        sample_img = Image.open(os.path.join(args.image_path, input))
-        torch_img = transform(sample_img)
-        imgs.append(sample_img)
-        img_list.append(torch_img)
-
-    img_list = torch.stack(img_list)  # [100, 3, 244, 244]
-
-    # Making an actual torch.tensor out of target_list
+    img_paths = [os.path.join(args.image_path, input) for input in input_list]
     target_list = torch.stack(target_list)
     prefix_size = target_list.size()[:-2]
     target_list = target_list.view(*prefix_size, 399).squeeze(dim=1)  # [100, 399]
-
-    sift_descriptors = compute_sift_descriptors(imgs)
     
-    dataset = CustomSIFTDataset(img_list, target_list, sift_descriptors)
+    dataset = CustomSIFTDataset(img_paths, target_list)
     print(f"Dataset size: {len(dataset)}")
     dataloader = DataLoader(
         dataset,
