@@ -50,7 +50,7 @@ def test_score(predict_list, target_list):
 
 
 def main(args):
-    print(f"evaluating {args.model_path} on dev set")
+    print(f"evaluating {args.model_path} on {args.mode} set")
 
     split = "dev" if args.mode == "dev" else "test"
     input_list, target_list, _ = json_loader(
