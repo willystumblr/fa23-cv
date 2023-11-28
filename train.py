@@ -45,7 +45,7 @@ def main(args):
         train_dataloader = prepare_sift_dataloader(args, "train")
         eval_dataloader = prepare_sift_dataloader(args, "dev")
     elif 'superpixel' in args.model_name:
-        train_dataloader = prepare_superpixel_dataloader(args, "train")
+        train_dataloader = prepare_superpixel_dataloader(args, "dev")
         eval_dataloader = prepare_superpixel_dataloader(args, "dev")   
     elif args.lazy:
         train_dataloader = prepare_lazy_dataloader(args, "train")
