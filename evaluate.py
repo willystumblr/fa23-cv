@@ -4,7 +4,7 @@ import torchvision
 from torchvision import transforms
 from torchvision.models import ResNet50_Weights, ResNet18_Weights
 from torch.utils.data import DataLoader
-from models.CombinedModel import model_resnet18_4_with_sobel, model_resnet18_4_with_superpixel, model_resnet18_5_with_sobel_superpixel, model_resnet50_4_with_sobel, model_resnet50_4_with_superpixel, model_resnet50_5_with_sobel_superpixel, model_resnet50_with_sift, model_resnet50_with_sobel
+from models.CombinedModel import model_resnet18_4_with_sobel, model_resnet18_4_with_superpixel, model_resnet18_5_with_sobel_superpixel, model_resnet18_with_sift, model_resnet50_4_with_sobel, model_resnet50_4_with_superpixel, model_resnet50_5_with_sobel_superpixel, model_resnet50_with_sift, model_resnet50_with_sobel
 from models.Resnet50 import model_resnet18, model_resnet50
 
 from utils import json_loader
@@ -116,7 +116,10 @@ def main(args):
         
     elif args.model_name == "resnet18_5_with_sobel_superpixel":
         weights = torchvision.models.ResNet18_Weights.DEFAULT
-        net = model_resnet18_5_with_sobel_superpixel(weights=weights).to(device)    
+        net = model_resnet18_5_with_sobel_superpixel(weights=weights).to(device)
+    elif args.model_name == "resnet18_with_sift":
+        weights = ResNet18_Weights.DEFAULT
+        net = model_resnet18_with_sift(weights=weights).to(device)    
     else:
         net = model_resnet50(weights=weights).to(device)
     print(f"Using {args.model_name}")
