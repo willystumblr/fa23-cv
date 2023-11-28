@@ -6,7 +6,8 @@ import torch.optim as optim
 import torchvision
 from tqdm.auto import tqdm
 import argparse
-from models.CombinedModel import model_resnet18, model_resnet50, model_resnet18_4_with_sobel, model_resnet50_4_with_sobel, model_resnet50_with_sobel, model_resnet50_with_sift, model_resnet50_5_with_sobel_superpixel, model_resnet18_5_with_sobel_superpixel
+from models.CombinedModel import  model_resnet18_4_with_sobel, model_resnet50_4_with_sobel, model_resnet50_with_sobel, model_resnet50_with_sift, model_resnet50_5_with_sobel_superpixel, model_resnet18_5_with_sobel_superpixel
+from models.Resnet50 import model_resnet18, model_resnet50
 from utils.dataset import prepare_dataloader, prepare_lazy_dataloader, prepare_sift_dataloader, prepare_superpixel_dataloader
 
 from utils.device import get_device
