@@ -2,16 +2,16 @@ import os
 import torch
 import torchvision
 from torchvision import transforms
-from torchvision.models import ResNet50_Weights
+from torchvision.models import ResNet50_Weights, ResNet18_Weights
 from torch.utils.data import DataLoader
-from models.CombinedModel import model_resnet50_4_with_sobel, model_resnet50_with_sobel
-from models.Resnet50 import model_resnet50
+from models.CombinedModel import model_resnet18_4_with_sobel, model_resnet50_4_with_sobel, model_resnet50_with_sift, model_resnet50_with_sobel
+from models.Resnet50 import model_resnet18, model_resnet50
 
 from utils import json_loader
 from PIL import Image
 from tqdm.auto import tqdm
 import argparse
-from utils.dataset import CustomEvalDataset
+from utils.dataset import CustomEvalDataset, CustomSIFTEvalDataset, compute_sift_descriptors
 
 from utils.device import get_device
 
@@ -65,8 +65,10 @@ def main(args):
 
     # Making an actual torch.tensor out of images
     transform = transforms.Compose([transforms.ToTensor()])
+    imgs = []
     for input in tqdm(input_list):
         sample_img = Image.open(os.path.join(args.image_path, input))
+        imgs.append(sample_img)
         torch_img = transform(sample_img)
         img_list.append(torch_img)
 
@@ -76,7 +78,11 @@ def main(args):
     target_list = torch.stack(target_list).reshape(-1, 133, 3)
 
     batch_size = args.batch_size
-    dataset = CustomEvalDataset(img_list)
+    if "sift" in args.model_name:
+        descriptors = compute_sift_descriptors(imgs)
+        dataset = CustomSIFTEvalDataset(img_list, descriptors)
+    else:
+        dataset = CustomEvalDataset(img_list)
     print(f"Dataset size: {len(dataset)}")
     dataloader = DataLoader(dataset, batch_size=batch_size)
 
@@ -86,6 +92,14 @@ def main(args):
         net = model_resnet50_4_with_sobel(weights=weights).to(device)
     elif args.model_name == "resnet50_with_sobel":
         net = model_resnet50_with_sobel(weights=weights).to(device)
+    elif args.model_name == "resnet50_with_sift":
+        net = model_resnet50_with_sift(weights=weights).to(device)
+    elif args.model_name == "resnet18":
+        weights = ResNet18_Weights.DEFAULT
+        net = model_resnet18(weights=weights).to(device)
+    elif args.model_name == "resnet18_4_with_sobel":
+        weights = ResNet18_Weights.DEFAULT
+        net = model_resnet18_4_with_sobel(weights=weights).to(device)
     else:
         net = model_resnet50(weights=weights).to(device)
     print(f"Using {args.model_name}")
@@ -95,11 +109,19 @@ def main(args):
     net.eval()
     predict_list = []
     with torch.no_grad():
-        for images in tqdm(dataloader):
-            images = images.to(device)
-            outputs = net(images)  # [batch_size, 399]
-            outputs = torch.reshape(outputs, (-1, 133, 3))
-            predict_list.append(outputs)
+        if "sift" in args.model_name:
+            for images, descriptors in tqdm(dataloader):
+                images = images.float().to(device)
+                descriptors = descriptors.float().to(device)
+                outputs = net(images, descriptors)
+                outputs = torch.reshape(outputs, (-1, 133, 3))
+                predict_list.append(outputs)
+        else:
+            for images in tqdm(dataloader):
+                images = images.to(device)
+                outputs = net(images)
+                outputs = torch.reshape(outputs, (-1, 133, 3))
+                predict_list.append(outputs)
 
     test_score(predict_list, target_list.to(device))
 
