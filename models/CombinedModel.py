@@ -222,6 +222,30 @@ class model_resnet18_4_with_sobel(nn.Module):
         x = self.resnet(x)
         return x
 
+
+class model_resnet50_4_with_superpixel(nn.Module):
+    def __init__(self, weights=None):
+        super(model_resnet50_4_with_superpixel, self).__init__()
+        self.sobel = SobelEdgeDetector()  # (N, 1, 224, 224)
+        self.resnet = model_resnet50_4(weights=weights)  # (N, 133*3)
+
+    def forward(self, x, superpixel_labels):
+        x = torch.cat((x,superpixel_labels), dim=1)
+        x = self.resnet(x)
+        return x
+    
+class model_resnet18_4_with_superpixel(nn.Module):
+    def __init__(self, weights=None):
+        super(model_resnet18_4_with_superpixel, self).__init__()
+        self.sobel = SobelEdgeDetector()
+        self.resnet = model_resnet18_4(weights=weights)
+        
+    def forward(self, x, superpixel_labels):
+        x = torch.cat((x, superpixel_labels), dim=1)
+        x = self.resnet(x)
+        return x
+
+
 class model_resnet50_5_with_sobel_superpixel(nn.Module):
     def __init__(self, weights=None):
         super(model_resnet50_5_with_sobel_superpixel, self).__init__()
@@ -238,7 +262,7 @@ class model_resnet18_5_with_sobel_superpixel(nn.Module):
     def __init__(self, weights=None):
         super(model_resnet18_5_with_sobel_superpixel, self).__init__()
         self.sobel = SobelEdgeDetector()
-        self.resnet = model_resnet18_4(weights=weights)
+        self.resnet = model_resnet18_5(weights=weights)
         
     def forward(self, x, superpixel_labels):
         edges = self.sobel(x)
