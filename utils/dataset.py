@@ -225,7 +225,7 @@ def compute_superpixel_labels(images, num_keypoints=133):
     print("Extracting Superpixel labels...")
     superpixel_labels = []
     for img in tqdm(images):
-        gray_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+        gray_img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2HSV)
         
         num_superpixels = 400  # desired number of superpixels
         num_iterations = 4     # number of pixel level iterations. The higher, the better quality
@@ -240,11 +240,11 @@ def compute_superpixel_labels(images, num_keypoints=133):
         # run SEEDS
         seeds.iterate(gray_img, num_iterations)
        
-        # get number of superpixel
-        num_of_superpixels_result = seeds.getNumberOfSuperpixels()
-       
         # retrieve the segmentation result
         labels = seeds.getLabels() # height x width matrix. Each component indicates the superpixel index of the corresponding pixel position
+        labels = np.array(labels)
+        labels = labels[np.newaxis,:,:]
+        
         superpixel_labels.append(labels)
     
     descriptors = torch.stack([torch.from_numpy(d) for d in superpixel_labels])

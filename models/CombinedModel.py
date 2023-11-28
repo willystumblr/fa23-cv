@@ -230,6 +230,7 @@ class model_resnet50_4_with_superpixel(nn.Module):
         self.resnet = model_resnet50_4(weights=weights)  # (N, 133*3)
 
     def forward(self, x, superpixel_labels):
+        # superpixel_labels (N, 1, 224, 224)
         x = torch.cat((x,superpixel_labels), dim=1)
         x = self.resnet(x)
         return x
