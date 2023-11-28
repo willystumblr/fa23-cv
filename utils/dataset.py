@@ -188,3 +188,105 @@ def prepare_sift_dataloader(
         num_workers=args.num_workers,
     )
     return dataloader
+
+
+class CustomSuperpixelDataset(Dataset):
+    def __init__(self, images, keypoints, superpixel_labels):
+        self.images = images
+        self.superpixel_labels = superpixel_labels
+        self.keypoints = keypoints
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index):
+        image = self.images[index]
+        superpixel_labels = self.superpixel_labels[index]
+        keypoint = self.keypoints[index]
+        return image, keypoint, superpixel_labels
+
+class CustomSuperpixelEvalDataset(Dataset):
+    def __init__(self, images, superpixel_labels):
+        self.images = images
+        self.superpixel_labelss = superpixel_labels
+        #self.keypoints = keypoints
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index):
+        image = self.images[index]
+        superpixel_labels = self.superpixel_labels[index]
+        #keypoint = self.keypoints[index]
+        return image, superpixel_labels
+
+
+def compute_superpixel_labels(images, num_keypoints=133):
+    print("Extracting Superpixel labels...")
+    superpixel_labels = []
+    for img in tqdm(images):
+        gray_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+        
+        num_superpixels = 400  # desired number of superpixels
+        num_iterations = 4     # number of pixel level iterations. The higher, the better quality
+        prior = 2              # for shape smoothing term. must be [0, 5]
+        num_levels = 4
+        num_histogram_bins = 5 # number of histogram bins
+        height, width, channels = gray_img.shape
+
+        # initialize SEEDS algorithm
+        seeds = cv2.ximgproc.createSuperpixelSEEDS(width, height, channels, num_superpixels, num_levels, prior, num_histogram_bins)
+       
+        # run SEEDS
+        seeds.iterate(gray_img, num_iterations)
+       
+        # get number of superpixel
+        num_of_superpixels_result = seeds.getNumberOfSuperpixels()
+       
+        # retrieve the segmentation result
+        labels = seeds.getLabels() # height x width matrix. Each component indicates the superpixel index of the corresponding pixel position
+        superpixel_labels.append(labels)
+    
+    descriptors = torch.stack([torch.from_numpy(d) for d in superpixel_labels])
+    print(descriptors.shape)
+    
+    return descriptors
+
+def prepare_superpixel_dataloader(
+    args,
+    set_type,
+):
+    assert set_type in ["train", "dev"], "set_type must be either train or dev"
+    input_list, target_list, _ = json_loader(
+        f"{args.annotation_path}/{set_type}.json", 3, "train"
+    )
+    print(f"json loaded")
+
+    img_list = []
+    # Making an actual torch.tensor out of images
+    transform = transforms.Compose([transforms.ToTensor()])
+    imgs = []
+    for input in tqdm(input_list):
+        sample_img = Image.open(os.path.join(args.image_path, input))
+        torch_img = transform(sample_img)
+        imgs.append(sample_img)
+        img_list.append(torch_img)
+
+    img_list = torch.stack(img_list)  # [100, 3, 244, 244]
+
+    # Making an actual torch.tensor out of target_list
+    target_list = torch.stack(target_list)
+    prefix_size = target_list.size()[:-2]
+    target_list = target_list.view(*prefix_size, 399).squeeze(dim=1)  # [100, 399]
+
+    superpixel_labels = compute_superpixel_labels(imgs)
+    
+    dataset = CustomSuperpixelDataset(img_list, target_list, superpixel_labels)
+    print(f"Dataset size: {len(dataset)}")
+    dataloader = DataLoader(
+        dataset,
+        batch_size=args.batch_size,
+        shuffle=True if set_type == "train" else False,
+        num_workers=args.num_workers,
+    )
+    return dataloader

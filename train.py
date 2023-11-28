@@ -6,9 +6,8 @@ import torch.optim as optim
 import torchvision
 from tqdm.auto import tqdm
 import argparse
-from models.CombinedModel import model_resnet18_4_with_sobel, model_resnet50_4_with_sobel, model_resnet50_with_sobel, model_resnet50_with_sift
-from models.Resnet50 import model_resnet18, model_resnet50
-from utils.dataset import prepare_dataloader, prepare_lazy_dataloader, prepare_sift_dataloader
+from models.CombinedModel import model_resnet18, model_resnet50, model_resnet18_4_with_sobel, model_resnet50_4_with_sobel, model_resnet50_with_sobel, model_resnet50_with_sift, model_resnet50_5_with_sobel_superpixel, model_resnet18_5_with_sobel_superpixel
+from utils.dataset import prepare_dataloader, prepare_lazy_dataloader, prepare_sift_dataloader, prepare_superpixel_dataloader
 
 from utils.device import get_device
 
@@ -44,6 +43,9 @@ def main(args):
     if 'sift' in args.model_name:
         train_dataloader = prepare_sift_dataloader(args, "train")
         eval_dataloader = prepare_sift_dataloader(args, "dev")
+    elif 'superpixel' in args.model_name:
+        train_dataloader = prepare_superpixel_dataloader(args, "train")
+        eval_dataloader = prepare_superpixel_dataloader(args, "dev")   
     elif args.lazy:
         train_dataloader = prepare_lazy_dataloader(args, "train")
         eval_dataloader = prepare_lazy_dataloader(args, "dev")
@@ -54,15 +56,7 @@ def main(args):
     # 2. Define the model
     device = get_device()
     print(f"Using {args.model_name}")
-    if args.model_name == "resnet50_4_with_sobel":
-        if args.use_pretrained:
-            weights = torchvision.models.ResNet50_Weights.DEFAULT
-            print("Using pretrained weights")
-        else:
-            weights = None
-            print("Training from scratch")
-        net = model_resnet50_4_with_sobel(weights=weights).to(device)
-    elif args.model_name == "resnet50_with_sobel":
+    if args.model_name == "resnet50_with_sobel":
         if args.use_pretrained:
             weights = torchvision.models.ResNet50_Weights.DEFAULT
             print("Using pretrained weights")
@@ -70,6 +64,7 @@ def main(args):
             weights = None
             print("Training from scratch")
         net = model_resnet50_with_sobel(weights=weights).to(device)
+    
     elif args.model_name == "resnet50_with_sift":
         if args.use_pretrained:
             weights = torchvision.models.ResNet50_Weights.DEFAULT
@@ -78,14 +73,16 @@ def main(args):
             weights = None
             print("Training from scratch")
         net = model_resnet50_with_sift(weights=weights).to(device) 
-    elif args.model_name == "resnet18":
+    
+    elif args.model_name == "resnet50_4_with_sobel":
         if args.use_pretrained:
-            weights = torchvision.models.ResNet18_Weights.DEFAULT
+            weights = torchvision.models.ResNet50_Weights.DEFAULT
             print("Using pretrained weights")
         else:
             weights = None
             print("Training from scratch")
-        net = model_resnet18(weights=weights).to(device)
+        net = model_resnet50_4_with_sobel(weights=weights).to(device)
+    
     elif args.model_name == "resnet18_4_with_sobel":
         if args.use_pretrained:
             weights = torchvision.models.ResNet18_Weights.DEFAULT
@@ -94,6 +91,34 @@ def main(args):
             weights = None
             print("Training from scratch")
         net = model_resnet18_4_with_sobel(weights=weights).to(device)
+    
+    elif args.model_name == "resnet50_5_with_sobel_superpixel":
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet50_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet50_5_with_sobel_superpixel(weights=weights).to(device)
+        
+    elif args.model_name == "resnet18_5_with_sobel_superpixel":
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet18_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet18_5_with_sobel_superpixel(weights=weights).to(device)    
+     
+    elif args.model_name == "resnet18":
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet18_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet18(weights=weights).to(device)
+       
     else:
         if args.use_pretrained:
             weights = torchvision.models.ResNet50_Weights.DEFAULT
@@ -128,6 +153,9 @@ def main(args):
                 descriptors = components[2].float().to(device)
                 # print(descriptors.shape)
                 outputs = net(images, descriptors)
+            if 'superpixel' in args.model_name:
+                labels = components[2].float().to(device)
+                outputs = net(images, labels)
             # Forward pass
             else:
                 outputs = net(images)
