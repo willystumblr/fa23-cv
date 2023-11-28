@@ -6,8 +6,8 @@ import torch.optim as optim
 import torchvision
 from tqdm.auto import tqdm
 import argparse
-from models.CombinedModel import model_resnet50_4_with_sobel, model_resnet50_with_sobel, model_resnet50_with_sift
-from models.Resnet50 import model_resnet50
+from models.CombinedModel import model_resnet18_4_with_sobel, model_resnet50_4_with_sobel, model_resnet50_with_sobel, model_resnet50_with_sift
+from models.Resnet50 import model_resnet18, model_resnet50
 from utils.dataset import prepare_dataloader, prepare_lazy_dataloader, prepare_sift_dataloader
 
 from utils.device import get_device
@@ -78,6 +78,22 @@ def main(args):
             weights = None
             print("Training from scratch")
         net = model_resnet50_with_sift(weights=weights).to(device) 
+    elif args.model_name == "resnet18":
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet18_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet18(weights=weights).to(device)
+    elif args.model_name == "resnet18_4_with_sobel":
+        if args.use_pretrained:
+            weights = torchvision.models.ResNet18_Weights.DEFAULT
+            print("Using pretrained weights")
+        else:
+            weights = None
+            print("Training from scratch")
+        net = model_resnet18_4_with_sobel(weights=weights).to(device)
     else:
         if args.use_pretrained:
             weights = torchvision.models.ResNet50_Weights.DEFAULT
