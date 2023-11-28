@@ -30,6 +30,9 @@ def validate(args, net, dataloader, device):
         if 'sift' in args.model_name:
             descriptors = components[2].float().to(device)
             outputs = net(images, descriptors)
+        elif 'superpixel' in args.model_name:
+            label = components[2].float().to(device)
+            outputs = net(images, label)    
         else:
             outputs = net(images)
         loss = loss_fn(outputs, keypoints)

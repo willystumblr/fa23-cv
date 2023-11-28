@@ -11,7 +11,7 @@ from utils import json_loader
 from PIL import Image
 from tqdm.auto import tqdm
 import argparse
-from utils.dataset import CustomEvalDataset, CustomSIFTEvalDataset, compute_sift_descriptors
+from utils.dataset import CustomEvalDataset, CustomSIFTEvalDataset, compute_sift_descriptors, compute_superpixel_labels
 
 from utils.device import get_device
 
@@ -81,6 +81,9 @@ def main(args):
     if "sift" in args.model_name:
         descriptors = compute_sift_descriptors(imgs)
         dataset = CustomSIFTEvalDataset(img_list, descriptors)
+    elif "superpixel" in args.model_name:
+        labels = compute_superpixel_labels(imgs)
+        dataset = CustomSIFTEvalDataset(img_list, labels)
     else:
         dataset = CustomEvalDataset(img_list)
     print(f"Dataset size: {len(dataset)}")
@@ -128,6 +131,14 @@ def main(args):
                 images = images.float().to(device)
                 descriptors = descriptors.float().to(device)
                 outputs = net(images, descriptors)
+                outputs = torch.reshape(outputs, (-1, 133, 3))
+                predict_list.append(outputs)
+                
+        elif "superpixel" in args.model_name:
+            for images, labels in tqdm(dataloader):
+                images = images.float().to(device)
+                labels = labels.float().to(device)
+                outputs = net(images, labels)
                 outputs = torch.reshape(outputs, (-1, 133, 3))
                 predict_list.append(outputs)
         else:
